@@ -112,18 +112,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Start stats animation after a delay
     setTimeout(animateStats, 500);
 
-    // Animate candlestick patterns dynamically
-    function animateCandlesticks() {
-        const candlesticks = document.querySelectorAll('.candlestick-pattern line, .candlestick-pattern rect');
-        candlesticks.forEach((candle, index) => {
-            const randomDelay = Math.random() * 2;
-            const randomDuration = 1.5 + Math.random() * 1;
-            
-            candle.style.animation = `candlestickPulse ${randomDuration}s ease-in-out ${randomDelay}s infinite`;
-        });
-    }
-
-    animateCandlesticks();
+    // Logo image is now used instead of SVG candlestick patterns
 
     // Create floating trading indicators (reduced on mobile for performance)
     function createTradingIndicator() {

@@ -466,58 +466,17 @@ body::before {
         inset 0 0 80px rgba(0, 255, 0, 0.2);
 }
 
-.candlestick-pattern {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    opacity: 0.5;
-    z-index: 1;
-    animation: patternMove 15s linear infinite;
-}
-
-.candlestick-pattern line,
-.candlestick-pattern rect {
-    animation: candlestickPulse 2s ease-in-out infinite;
-}
-
-.candlestick-pattern line:nth-child(odd),
-.candlestick-pattern rect:nth-child(even) {
-    animation-delay: 0.5s;
-}
-
-.candlestick-pattern line:nth-child(3n),
-.candlestick-pattern rect:nth-child(3n) {
-    animation-delay: 1s;
-}
-
-@keyframes patternMove {
-    0% { transform: translate(0, 0) rotate(0deg); }
-    100% { transform: translate(10px, 10px) rotate(360deg); }
-}
-
-@keyframes candlestickPulse {
-    0%, 100% {
-        opacity: 0.3;
-        transform: scaleY(1);
-    }
-    50% {
-        opacity: 0.7;
-        transform: scaleY(1.2);
-    }
-}
-
-.wolf-head {
+.logo-image {
+    width: 85%;
+    height: 85%;
+    object-fit: contain;
     position: relative;
     z-index: 2;
-    width: 80%;
-    height: 80%;
     filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
-    animation: wolfGlow 2s ease-in-out infinite alternate;
+    animation: logoGlow 2s ease-in-out infinite alternate;
 }
 
-@keyframes wolfGlow {
+@keyframes logoGlow {
     from {
         filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
     }
@@ -866,9 +825,9 @@ body::before {
         height: 160px;
     }
 
-    .wolf-head {
-        width: 75%;
-        height: 75%;
+    .logo-image {
+        width: 85%;
+        height: 85%;
     }
 
     /* Profile Info Mobile */
@@ -979,10 +938,7 @@ body::before {
         touch-action: manipulation;
     }
 
-    /* Reduce animations on mobile for performance */
-    .candlestick-pattern {
-        animation-duration: 20s;
-    }
+    /* Logo image optimized for mobile */
 
     .logo-circle {
         animation-duration: 4s, 25s;
