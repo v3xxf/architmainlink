@@ -391,42 +391,54 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (testimonialsContainer && testimonialsTrack) {
         let autoScrollEnabled = true;
-        let autoScrollSpeed = 1.5; // pixels per frame (increased speed)
+        let autoScrollSpeed = 2; // pixels per frame (increased speed)
         let scrollPosition = 0;
         let isUserScrolling = false;
+        let isProgrammaticScroll = false; // Flag to track programmatic scrolling
         let scrollTimeout = null;
         let animationFrameId = null;
-        const trackWidth = testimonialsTrack.scrollWidth;
-        const halfWidth = trackWidth / 2; // Since we duplicated content
+        let hoverPaused = false;
+        
+        // Wait for content to load to get accurate width
+        function initAutoScroll() {
+            const trackWidth = testimonialsTrack.scrollWidth;
+            const halfWidth = trackWidth / 2; // Since we duplicated content
 
-        // Auto-scroll function
-        function autoScroll() {
-            if (!autoScrollEnabled || isUserScrolling) {
+            // Auto-scroll function
+            function autoScroll() {
+                if (!autoScrollEnabled || isUserScrolling || hoverPaused) {
+                    animationFrameId = requestAnimationFrame(autoScroll);
+                    return;
+                }
+
+                scrollPosition += autoScrollSpeed;
+                
+                // Reset to beginning when we reach halfway (seamless loop)
+                if (scrollPosition >= halfWidth) {
+                    scrollPosition = 0;
+                }
+                
+                isProgrammaticScroll = true;
+                testimonialsContainer.scrollLeft = scrollPosition;
+                isProgrammaticScroll = false;
+                
                 animationFrameId = requestAnimationFrame(autoScroll);
-                return;
             }
 
-            scrollPosition += autoScrollSpeed;
-            
-            // Reset to beginning when we reach halfway (seamless loop)
-            if (scrollPosition >= halfWidth) {
-                scrollPosition = 0;
-            }
-            
-            testimonialsContainer.scrollLeft = scrollPosition;
-            animationFrameId = requestAnimationFrame(autoScroll);
+            // Start auto-scroll
+            autoScroll();
         }
 
-        // Start auto-scroll
-        autoScroll();
+        // Initialize after a short delay to ensure DOM is ready
+        setTimeout(initAutoScroll, 100);
 
-        // Detect manual scrolling
+        // Detect manual scrolling (only when not programmatic)
         let lastScrollLeft = testimonialsContainer.scrollLeft;
         let scrollCheckInterval = setInterval(() => {
             const currentScrollLeft = testimonialsContainer.scrollLeft;
             
-            // If scroll position changed and we didn't change it programmatically
-            if (Math.abs(currentScrollLeft - lastScrollLeft) > 1 && !isUserScrolling) {
+            // If scroll position changed and it wasn't programmatic
+            if (Math.abs(currentScrollLeft - lastScrollLeft) > 1 && !isProgrammaticScroll && !isUserScrolling) {
                 isUserScrolling = true;
                 autoScrollEnabled = false;
                 scrollPosition = currentScrollLeft;
@@ -449,13 +461,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Pause on hover
         testimonialsContainer.addEventListener('mouseenter', () => {
-            autoScrollEnabled = false;
+            hoverPaused = true;
         });
 
         testimonialsContainer.addEventListener('mouseleave', () => {
-            if (!isUserScrolling) {
-                autoScrollEnabled = true;
-            }
+            hoverPaused = false;
         });
 
         // Mouse drag events
@@ -467,6 +477,7 @@ document.addEventListener('DOMContentLoaded', function() {
             isDragging = true;
             isUserScrolling = true;
             autoScrollEnabled = false;
+            hoverPaused = false;
             testimonialsContainer.style.cursor = 'grabbing';
             dragStartX = e.pageX;
             dragStartScroll = testimonialsContainer.scrollLeft;
@@ -507,6 +518,7 @@ document.addEventListener('DOMContentLoaded', function() {
         testimonialsContainer.addEventListener('touchstart', (e) => {
             isUserScrolling = true;
             autoScrollEnabled = false;
+            hoverPaused = false;
             touchStartX = e.touches[0].pageX;
             touchStartScroll = testimonialsContainer.scrollLeft;
         }, { passive: true });
@@ -529,6 +541,7 @@ document.addEventListener('DOMContentLoaded', function() {
         testimonialsContainer.addEventListener('wheel', () => {
             isUserScrolling = true;
             autoScrollEnabled = false;
+            hoverPaused = false;
             scrollPosition = testimonialsContainer.scrollLeft;
             
             if (scrollTimeout) {
