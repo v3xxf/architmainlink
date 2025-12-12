@@ -385,53 +385,175 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Testimonials drag-to-scroll functionality
+    // Testimonials auto-scroll functionality with manual scroll support
     const testimonialsContainer = document.querySelector('.testimonials-container');
-    if (testimonialsContainer) {
-        let isDown = false;
-        let startX;
-        let scrollLeft;
+    const testimonialsTrack = document.querySelector('.testimonials-track');
+    
+    if (testimonialsContainer && testimonialsTrack) {
+        let autoScrollEnabled = true;
+        let autoScrollSpeed = 1.5; // pixels per frame (increased speed)
+        let scrollPosition = 0;
+        let isUserScrolling = false;
+        let scrollTimeout = null;
+        let animationFrameId = null;
+        const trackWidth = testimonialsTrack.scrollWidth;
+        const halfWidth = trackWidth / 2; // Since we duplicated content
 
-        // Mouse events
-        testimonialsContainer.addEventListener('mousedown', (e) => {
-            isDown = true;
-            testimonialsContainer.style.cursor = 'grabbing';
-            startX = e.pageX - testimonialsContainer.offsetLeft;
-            scrollLeft = testimonialsContainer.scrollLeft;
+        // Auto-scroll function
+        function autoScroll() {
+            if (!autoScrollEnabled || isUserScrolling) {
+                animationFrameId = requestAnimationFrame(autoScroll);
+                return;
+            }
+
+            scrollPosition += autoScrollSpeed;
+            
+            // Reset to beginning when we reach halfway (seamless loop)
+            if (scrollPosition >= halfWidth) {
+                scrollPosition = 0;
+            }
+            
+            testimonialsContainer.scrollLeft = scrollPosition;
+            animationFrameId = requestAnimationFrame(autoScroll);
+        }
+
+        // Start auto-scroll
+        autoScroll();
+
+        // Detect manual scrolling
+        let lastScrollLeft = testimonialsContainer.scrollLeft;
+        let scrollCheckInterval = setInterval(() => {
+            const currentScrollLeft = testimonialsContainer.scrollLeft;
+            
+            // If scroll position changed and we didn't change it programmatically
+            if (Math.abs(currentScrollLeft - lastScrollLeft) > 1 && !isUserScrolling) {
+                isUserScrolling = true;
+                autoScrollEnabled = false;
+                scrollPosition = currentScrollLeft;
+                
+                // Clear any pending timeout
+                if (scrollTimeout) {
+                    clearTimeout(scrollTimeout);
+                }
+                
+                // Resume auto-scroll after user stops scrolling
+                scrollTimeout = setTimeout(() => {
+                    isUserScrolling = false;
+                    autoScrollEnabled = true;
+                    scrollPosition = currentScrollLeft;
+                }, 2000); // Resume after 2 seconds of no scrolling
+            }
+            
+            lastScrollLeft = currentScrollLeft;
+        }, 100);
+
+        // Pause on hover
+        testimonialsContainer.addEventListener('mouseenter', () => {
+            autoScrollEnabled = false;
         });
 
         testimonialsContainer.addEventListener('mouseleave', () => {
-            isDown = false;
-            testimonialsContainer.style.cursor = 'grab';
+            if (!isUserScrolling) {
+                autoScrollEnabled = true;
+            }
         });
 
-        testimonialsContainer.addEventListener('mouseup', () => {
-            isDown = false;
-            testimonialsContainer.style.cursor = 'grab';
+        // Mouse drag events
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartScroll = 0;
+
+        testimonialsContainer.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            isUserScrolling = true;
+            autoScrollEnabled = false;
+            testimonialsContainer.style.cursor = 'grabbing';
+            dragStartX = e.pageX;
+            dragStartScroll = testimonialsContainer.scrollLeft;
         });
 
         testimonialsContainer.addEventListener('mousemove', (e) => {
-            if (!isDown) return;
-            e.preventDefault();
-            const x = e.pageX - testimonialsContainer.offsetLeft;
-            const walk = (x - startX) * 2; // Scroll speed multiplier
-            testimonialsContainer.scrollLeft = scrollLeft - walk;
+            if (isDragging) {
+                e.preventDefault();
+                const walk = (e.pageX - dragStartX) * 2;
+                testimonialsContainer.scrollLeft = dragStartScroll - walk;
+                scrollPosition = testimonialsContainer.scrollLeft;
+            }
+        });
+
+        testimonialsContainer.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                testimonialsContainer.style.cursor = 'grab';
+                scrollTimeout = setTimeout(() => {
+                    isUserScrolling = false;
+                    autoScrollEnabled = true;
+                    scrollPosition = testimonialsContainer.scrollLeft;
+                }, 2000);
+            }
+        });
+
+        testimonialsContainer.addEventListener('mouseleave', () => {
+            if (isDragging) {
+                isDragging = false;
+                testimonialsContainer.style.cursor = 'grab';
+            }
         });
 
         // Touch events for mobile
         let touchStartX = 0;
-        let scrollLeftStart = 0;
+        let touchStartScroll = 0;
 
         testimonialsContainer.addEventListener('touchstart', (e) => {
-            touchStartX = e.touches[0].pageX - testimonialsContainer.offsetLeft;
-            scrollLeftStart = testimonialsContainer.scrollLeft;
+            isUserScrolling = true;
+            autoScrollEnabled = false;
+            touchStartX = e.touches[0].pageX;
+            touchStartScroll = testimonialsContainer.scrollLeft;
         }, { passive: true });
 
         testimonialsContainer.addEventListener('touchmove', (e) => {
-            const x = e.touches[0].pageX - testimonialsContainer.offsetLeft;
-            const walk = (x - touchStartX) * 2;
-            testimonialsContainer.scrollLeft = scrollLeftStart - walk;
+            const walk = (e.touches[0].pageX - touchStartX) * 2;
+            testimonialsContainer.scrollLeft = touchStartScroll - walk;
+            scrollPosition = testimonialsContainer.scrollLeft;
         }, { passive: true });
+
+        testimonialsContainer.addEventListener('touchend', () => {
+            scrollTimeout = setTimeout(() => {
+                isUserScrolling = false;
+                autoScrollEnabled = true;
+                scrollPosition = testimonialsContainer.scrollLeft;
+            }, 2000);
+        }, { passive: true });
+
+        // Wheel scroll detection
+        testimonialsContainer.addEventListener('wheel', () => {
+            isUserScrolling = true;
+            autoScrollEnabled = false;
+            scrollPosition = testimonialsContainer.scrollLeft;
+            
+            if (scrollTimeout) {
+                clearTimeout(scrollTimeout);
+            }
+            
+            scrollTimeout = setTimeout(() => {
+                isUserScrolling = false;
+                autoScrollEnabled = true;
+                scrollPosition = testimonialsContainer.scrollLeft;
+            }, 2000);
+        }, { passive: true });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+            if (scrollCheckInterval) {
+                clearInterval(scrollCheckInterval);
+            }
+            if (scrollTimeout) {
+                clearTimeout(scrollTimeout);
+            }
+        });
     }
 });
 
