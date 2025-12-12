@@ -424,12 +424,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         currentScroll = currentScroll - halfWidth;
                     }
                     
-                    isProgrammaticScroll = true;
                     testimonialsContainer.scrollLeft = currentScroll;
-                    // Keep flag true briefly to prevent detection from catching it
-                    setTimeout(() => {
-                        isProgrammaticScroll = false;
-                    }, 50);
                     
                     animationFrameId = requestAnimationFrame(autoScroll);
                 }
@@ -448,44 +443,8 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Detect manual scrolling - but only when NOT programmatic
-        let lastScrollLeft = 0;
-        let expectedScrollLeft = 0;
-        let scrollCheckInterval = setInterval(() => {
-            const currentScrollLeft = testimonialsContainer.scrollLeft;
-            
-            // Skip detection if we just did a programmatic scroll
-            if (isProgrammaticScroll) {
-                expectedScrollLeft = currentScrollLeft;
-                lastScrollLeft = currentScrollLeft;
-                return;
-            }
-            
-            // Only detect manual scroll if it's significantly different from expected
-            const scrollDiff = Math.abs(currentScrollLeft - expectedScrollLeft);
-            if (scrollDiff > 10 && !isUserScrolling) {
-                isUserScrolling = true;
-                autoScrollEnabled = false;
-                
-                if (scrollTimeout) {
-                    clearTimeout(scrollTimeout);
-                }
-                
-                // Resume auto-scroll after user stops scrolling
-                scrollTimeout = setTimeout(() => {
-                    isUserScrolling = false;
-                    autoScrollEnabled = true;
-                    expectedScrollLeft = currentScrollLeft;
-                }, 2000);
-            } else {
-                // Update expected position if it's close (auto-scroll is working)
-                if (scrollDiff < 5) {
-                    expectedScrollLeft = currentScrollLeft;
-                }
-            }
-            
-            lastScrollLeft = currentScrollLeft;
-        }, 150);
+        // Don't use scroll detection - only pause on explicit user interaction
+        // This prevents false positives from interfering with auto-scroll
 
         // Pause on hover
         testimonialsContainer.addEventListener('mouseenter', () => {
