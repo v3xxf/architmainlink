@@ -390,74 +390,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const testimonialsTrack = document.querySelector('.testimonials-track');
     
     if (testimonialsContainer && testimonialsTrack) {
-        let autoScrollEnabled = true;
-        let autoScrollSpeed = 2; // pixels per frame (increased speed)
-        let scrollPosition = 0;
-        let isUserScrolling = false;
-        let isProgrammaticScroll = false; // Flag to track programmatic scrolling
+        let isUserInteracting = false;
         let scrollTimeout = null;
-        let animationFrameId = null;
-        let hoverPaused = false;
         
-        // Wait for content to load to get accurate width
-        function initAutoScroll() {
-            const trackWidth = testimonialsTrack.scrollWidth;
-            const halfWidth = trackWidth / 2; // Since we duplicated content
+        // Pause animation on hover
+        testimonialsContainer.addEventListener('mouseenter', () => {
+            testimonialsContainer.classList.add('paused');
+        });
 
-            // Auto-scroll function
-            function autoScroll() {
-                if (!autoScrollEnabled || isUserScrolling || hoverPaused) {
-                    animationFrameId = requestAnimationFrame(autoScroll);
-                    return;
-                }
-
-                scrollPosition += autoScrollSpeed;
-                
-                // Reset to beginning when we reach halfway (seamless loop)
-                if (scrollPosition >= halfWidth) {
-                    scrollPosition = 0;
-                }
-                
-                isProgrammaticScroll = true;
-                testimonialsContainer.scrollLeft = scrollPosition;
-                isProgrammaticScroll = false;
-                
-                animationFrameId = requestAnimationFrame(autoScroll);
+        testimonialsContainer.addEventListener('mouseleave', () => {
+            if (!isUserInteracting) {
+                testimonialsContainer.classList.remove('paused');
             }
-
-            // Start auto-scroll
-            autoScroll();
-        }
-
-        // Initialize after a short delay to ensure DOM is ready
-        setTimeout(initAutoScroll, 100);
-
-        // Detect manual scrolling (only when not programmatic)
-        let lastScrollLeft = testimonialsContainer.scrollLeft;
-        let scrollCheckInterval = setInterval(() => {
-            const currentScrollLeft = testimonialsContainer.scrollLeft;
-            
-            // If scroll position changed and it wasn't programmatic
-            if (Math.abs(currentScrollLeft - lastScrollLeft) > 1 && !isProgrammaticScroll && !isUserScrolling) {
-                isUserScrolling = true;
-                autoScrollEnabled = false;
-                scrollPosition = currentScrollLeft;
-                
-                // Clear any pending timeout
-                if (scrollTimeout) {
-                    clearTimeout(scrollTimeout);
-                }
-                
-                // Resume auto-scroll after user stops scrolling
-                scrollTimeout = setTimeout(() => {
-                    isUserScrolling = false;
-                    autoScrollEnabled = true;
-                    scrollPosition = currentScrollLeft;
-                }, 2000); // Resume after 2 seconds of no scrolling
-            }
-            
-            lastScrollLeft = currentScrollLeft;
-        }, 100);
+        });
 
         // Pause on hover
         testimonialsContainer.addEventListener('mouseenter', () => {
@@ -468,27 +413,30 @@ document.addEventListener('DOMContentLoaded', function() {
             hoverPaused = false;
         });
 
-        // Mouse drag events
+        // Mouse drag events - pause animation during drag
         let isDragging = false;
         let dragStartX = 0;
-        let dragStartScroll = 0;
+        let dragStartTransform = 0;
 
         testimonialsContainer.addEventListener('mousedown', (e) => {
             isDragging = true;
-            isUserScrolling = true;
-            autoScrollEnabled = false;
-            hoverPaused = false;
+            isUserInteracting = true;
+            testimonialsContainer.classList.add('paused');
             testimonialsContainer.style.cursor = 'grabbing';
             dragStartX = e.pageX;
-            dragStartScroll = testimonialsContainer.scrollLeft;
+            
+            // Get current transform value
+            const computedStyle = window.getComputedStyle(testimonialsTrack);
+            const matrix = new DOMMatrix(computedStyle.transform);
+            dragStartTransform = matrix.m41; // Get translateX value
         });
 
         testimonialsContainer.addEventListener('mousemove', (e) => {
             if (isDragging) {
                 e.preventDefault();
-                const walk = (e.pageX - dragStartX) * 2;
-                testimonialsContainer.scrollLeft = dragStartScroll - walk;
-                scrollPosition = testimonialsContainer.scrollLeft;
+                const walk = (e.pageX - dragStartX) * 1.5;
+                const newTransform = dragStartTransform + walk;
+                testimonialsTrack.style.transform = `translateX(${newTransform}px)`;
             }
         });
 
@@ -497,9 +445,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 isDragging = false;
                 testimonialsContainer.style.cursor = 'grab';
                 scrollTimeout = setTimeout(() => {
-                    isUserScrolling = false;
-                    autoScrollEnabled = true;
-                    scrollPosition = testimonialsContainer.scrollLeft;
+                    isUserInteracting = false;
+                    testimonialsContainer.classList.remove('paused');
                 }, 2000);
             }
         });
@@ -513,60 +460,46 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Touch events for mobile
         let touchStartX = 0;
-        let touchStartScroll = 0;
+        let touchStartTransform = 0;
 
         testimonialsContainer.addEventListener('touchstart', (e) => {
-            isUserScrolling = true;
-            autoScrollEnabled = false;
-            hoverPaused = false;
+            isUserInteracting = true;
+            testimonialsContainer.classList.add('paused');
             touchStartX = e.touches[0].pageX;
-            touchStartScroll = testimonialsContainer.scrollLeft;
+            
+            // Get current transform value
+            const computedStyle = window.getComputedStyle(testimonialsTrack);
+            const matrix = new DOMMatrix(computedStyle.transform);
+            touchStartTransform = matrix.m41;
         }, { passive: true });
 
         testimonialsContainer.addEventListener('touchmove', (e) => {
-            const walk = (e.touches[0].pageX - touchStartX) * 2;
-            testimonialsContainer.scrollLeft = touchStartScroll - walk;
-            scrollPosition = testimonialsContainer.scrollLeft;
+            const walk = (e.touches[0].pageX - touchStartX) * 1.5;
+            const newTransform = touchStartTransform + walk;
+            testimonialsTrack.style.transform = `translateX(${newTransform}px)`;
         }, { passive: true });
 
         testimonialsContainer.addEventListener('touchend', () => {
             scrollTimeout = setTimeout(() => {
-                isUserScrolling = false;
-                autoScrollEnabled = true;
-                scrollPosition = testimonialsContainer.scrollLeft;
+                isUserInteracting = false;
+                testimonialsContainer.classList.remove('paused');
             }, 2000);
         }, { passive: true });
 
         // Wheel scroll detection
         testimonialsContainer.addEventListener('wheel', () => {
-            isUserScrolling = true;
-            autoScrollEnabled = false;
-            hoverPaused = false;
-            scrollPosition = testimonialsContainer.scrollLeft;
+            isUserInteracting = true;
+            testimonialsContainer.classList.add('paused');
             
             if (scrollTimeout) {
                 clearTimeout(scrollTimeout);
             }
             
             scrollTimeout = setTimeout(() => {
-                isUserScrolling = false;
-                autoScrollEnabled = true;
-                scrollPosition = testimonialsContainer.scrollLeft;
+                isUserInteracting = false;
+                testimonialsContainer.classList.remove('paused');
             }, 2000);
         }, { passive: true });
-
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', () => {
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-            }
-            if (scrollCheckInterval) {
-                clearInterval(scrollCheckInterval);
-            }
-            if (scrollTimeout) {
-                clearTimeout(scrollTimeout);
-            }
-        });
     }
 });
 
