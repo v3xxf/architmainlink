@@ -737,9 +737,33 @@ body::before {
 
 .testimonials-container {
     width: 100%;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
     position: relative;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 255, 0, 0.5) rgba(0, 0, 0, 0.3);
     padding-bottom: 1rem;
+}
+
+.testimonials-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.testimonials-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+}
+
+.testimonials-container::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 0, 0.5);
+    border-radius: 10px;
+    transition: background 0.3s ease;
+}
+
+.testimonials-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 255, 0, 0.7);
 }
 
 .testimonials-container.scrollable {
@@ -755,20 +779,6 @@ body::before {
     gap: 1.5rem;
     padding-right: 1rem;
     will-change: transform;
-    animation: testimonialsScroll 50s linear infinite;
-}
-
-.testimonials-container.paused .testimonials-track {
-    animation-play-state: paused;
-}
-
-@keyframes testimonialsScroll {
-    0% {
-        transform: translateX(0);
-    }
-    100% {
-        transform: translateX(-50%);
-    }
 }
 
 .testimonial-card {
