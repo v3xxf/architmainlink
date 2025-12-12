@@ -404,61 +404,66 @@ document.addEventListener('DOMContentLoaded', function() {
             // Reset scroll position
             testimonialsContainer.scrollLeft = 0;
             
-            // Get accurate measurements
-            const trackWidth = testimonialsTrack.scrollWidth;
-            halfWidth = trackWidth / 2; // Since we duplicated content
+            // Get accurate measurements - wait a bit for layout
+            setTimeout(() => {
+                const trackWidth = testimonialsTrack.scrollWidth;
+                halfWidth = trackWidth / 2; // Since we duplicated content
 
-            // Auto-scroll function
-            function autoScroll() {
-                if (!autoScrollEnabled || isUserScrolling || hoverPaused) {
+                // Auto-scroll function
+                function autoScroll() {
+                    if (!autoScrollEnabled || isUserScrolling || hoverPaused) {
+                        animationFrameId = requestAnimationFrame(autoScroll);
+                        return;
+                    }
+
+                    let currentScroll = testimonialsContainer.scrollLeft;
+                    currentScroll += autoScrollSpeed;
+                    
+                    // Reset to beginning when we reach halfway (seamless loop)
+                    if (currentScroll >= halfWidth) {
+                        currentScroll = currentScroll - halfWidth;
+                    }
+                    
+                    isProgrammaticScroll = true;
+                    testimonialsContainer.scrollLeft = currentScroll;
+                    // Keep flag true briefly to prevent detection from catching it
+                    setTimeout(() => {
+                        isProgrammaticScroll = false;
+                    }, 50);
+                    
                     animationFrameId = requestAnimationFrame(autoScroll);
-                    return;
                 }
 
-                let currentScroll = testimonialsContainer.scrollLeft;
-                currentScroll += autoScrollSpeed;
-                
-                // Reset to beginning when we reach halfway (seamless loop)
-                if (currentScroll >= halfWidth) {
-                    currentScroll = currentScroll - halfWidth;
-                }
-                
-                isProgrammaticScroll = true;
-                testimonialsContainer.scrollLeft = currentScroll;
-                isProgrammaticScroll = false;
-                
-                animationFrameId = requestAnimationFrame(autoScroll);
-            }
-
-            // Start auto-scroll
-            autoScroll();
+                // Start auto-scroll
+                autoScroll();
+            }, 100);
         }
 
         // Initialize after content is loaded
         if (document.readyState === 'complete') {
-            setTimeout(initAutoScroll, 300);
+            setTimeout(initAutoScroll, 500);
         } else {
             window.addEventListener('load', () => {
-                setTimeout(initAutoScroll, 300);
+                setTimeout(initAutoScroll, 500);
             });
         }
 
-        // Detect manual scrolling
+        // Detect manual scrolling - but only when NOT programmatic
         let lastScrollLeft = 0;
-        let lastProgrammaticScroll = 0;
+        let expectedScrollLeft = 0;
         let scrollCheckInterval = setInterval(() => {
             const currentScrollLeft = testimonialsContainer.scrollLeft;
             
-            // Skip if it's our programmatic scroll
+            // Skip detection if we just did a programmatic scroll
             if (isProgrammaticScroll) {
-                lastProgrammaticScroll = currentScrollLeft;
+                expectedScrollLeft = currentScrollLeft;
                 lastScrollLeft = currentScrollLeft;
                 return;
             }
             
-            // Detect significant manual scroll changes
-            const scrollDiff = Math.abs(currentScrollLeft - lastProgrammaticScroll);
-            if (scrollDiff > 3 && !isUserScrolling && Math.abs(currentScrollLeft - lastScrollLeft) > 3) {
+            // Only detect manual scroll if it's significantly different from expected
+            const scrollDiff = Math.abs(currentScrollLeft - expectedScrollLeft);
+            if (scrollDiff > 10 && !isUserScrolling) {
                 isUserScrolling = true;
                 autoScrollEnabled = false;
                 
@@ -470,12 +475,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 scrollTimeout = setTimeout(() => {
                     isUserScrolling = false;
                     autoScrollEnabled = true;
-                    lastProgrammaticScroll = currentScrollLeft;
+                    expectedScrollLeft = currentScrollLeft;
                 }, 2000);
+            } else {
+                // Update expected position if it's close (auto-scroll is working)
+                if (scrollDiff < 5) {
+                    expectedScrollLeft = currentScrollLeft;
+                }
             }
             
             lastScrollLeft = currentScrollLeft;
-        }, 100);
+        }, 150);
 
         // Pause on hover
         testimonialsContainer.addEventListener('mouseenter', () => {
